@@ -4,11 +4,17 @@ require('dotenv').config(); // 載入 .env 的設定
 const express = require('express');
 
 const app = express();
+// const multer = require('multer');//檔案上傳功能，但不是很常用
+// const upload = multer({dest:'tmp_uploads/'})
+// const uploadImg = require('./modules/upload-images')
+
 app.set('view engine','ejs');
 
 const session = require('express-session')
 const jwt = require('jsonwebtoken');
 const MysqlStore = require('express-mysql-session')(session);//用來記錄用戶的session到資料表
+
+const fs = require('fs').promises;
 
 const moment = require("moment-timezone")
 
@@ -75,6 +81,24 @@ app.use(async (req,res,next)=>{
     next();
 })
 
+//上傳單一檔案single
+// app.post('/try-upload',upload.single('avatar'),async (req,res)=>{
+//     if(req.file && req.file.mimetype==='image/jpeg'){
+//         try{
+//             await fs.rename(req.file.path, __dirname + '/public/img/' + req.file.originalname);
+//             return res.json({success:true ,filename: req.file.originalname});
+//         } catch(ex){
+//             //ex=except(error)
+//             res.json({success:false,error:'無法存檔'});
+//         }
+//         } else {
+//             await fs.unlink(req.file.path);//刪除暫存檔案
+//             res.json({success:false,error:'格式不對'});
+//             //當圖檔不為image/jpeg
+//         }
+
+
+// })
 
 
 
@@ -98,7 +122,7 @@ app.get('/try-sess', (req, res)=>{
     res.json(req.session);
 });
 
-// *** 路由定義結束 :END
+// *** 路由定義結束 :END-----------------------------------
 
 app.use((req, res)=>{
     res.status(404).send(`<h1>找不到頁面</h1>`)

@@ -61,8 +61,8 @@ router.post('/register', async (req, res)=>{
     const hash = await bcrypt.hash(req.body.password, 10);
 
     const sql = "INSERT INTO `members`" +
-        "(`email`, `password`, `mobile`, `birthday`, `nickname`, `create_at`)" +
-        " VALUES (?, ?, ?, ?, ?, NOW())";
+        "(`email`, `password`, `mobile`, `birthday`, `name`, `nickname`,`address`, `create_at`)" +
+        " VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
 
     let result;//在外面使用時，一定要加
     try {
@@ -71,7 +71,9 @@ router.post('/register', async (req, res)=>{
             hash,// 注意hash加密
             req.body.mobile,
             req.body.birthday,
+            req.body.name,
             req.body.nickname,
+            req.body.address,
         ]);
         if(result.affectedRows===1){
             output.success = true;
