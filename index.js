@@ -4,9 +4,9 @@ require('dotenv').config(); // 載入 .env 的設定
 const express = require('express');
 
 const app = express();
-// const multer = require('multer');//檔案上傳功能，但不是很常用
-// const upload = multer({dest:'tmp_uploads/'})
-// const uploadImg = require('./modules/upload-images')
+const multer = require('multer');//檔案上傳功能，但不是很常用
+const upload = multer({dest:'tmp_uploads/'})
+const uploadImg = require('./modules/upload-images')
 
 app.set('view engine','ejs');
 
@@ -81,24 +81,30 @@ app.use(async (req,res,next)=>{
     next();
 })
 
-//上傳單一檔案single
-// app.post('/try-upload',upload.single('avatar'),async (req,res)=>{
-//     if(req.file && req.file.mimetype==='image/jpeg'){
-//         try{
-//             await fs.rename(req.file.path, __dirname + '/public/img/' + req.file.originalname);
-//             return res.json({success:true ,filename: req.file.originalname});
-//         } catch(ex){
-//             //ex=except(error)
-//             res.json({success:false,error:'無法存檔'});
-//         }
-//         } else {
-//             await fs.unlink(req.file.path);//刪除暫存檔案
-//             res.json({success:false,error:'格式不對'});
-//             //當圖檔不為image/jpeg
-//         }
+app.post('/try-upload2',uploadImg.single('avatar'),async (req,res)=>{
+    res.json(req.file);
+    //單一檔案上傳，圖片名稱暗碼
+        
+})
+
+// 上傳單一檔案single
+app.post('/try-upload',upload.single('avatar'),async (req,res)=>{
+    if(req.file && req.file.mimetype==='image/jpeg'){
+        try{
+            await fs.rename(req.file.path, __dirname + '/public/img/' + req.file.originalname);
+            return res.json({success:true ,filename: req.file.originalname});
+        } catch(ex){
+            //ex=except(error)
+            res.json({success:false,error:'無法存檔'});
+        }
+        } else {
+            await fs.unlink(req.file.path);//刪除暫存檔案
+            res.json({success:false,error:'格式不對'});
+            //當圖檔不為image/jpeg
+        }
 
 
-// })
+})
 
 
 

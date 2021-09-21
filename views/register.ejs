@@ -21,6 +21,19 @@
                             <label for="password-check" class="form-label">密碼確認 </label>
                             <input type="password-check" class="form-control" id="password-check" name="password-check">
                         </div> -->
+                        <form name="fake_form" onsubmit="return false">
+                            <img src="" alt="" width="300px" id="img01">
+                            <button type="button" class="btn btn-success" onclick="avatar.click()">上傳大頭貼</button>
+                    
+                            <div class="mb-3">
+                                <label for="my_img" class="form-label"></label>
+                                <input type="hidden" class="form-control" id="my_img" name="my_img">
+                            </div>
+                        </form>
+                        <form name="form2" style="display: none">
+                            <input type="file" id="avatar" name="avatar">
+                        </form>
+
                         <div class="mb-3">
                             <label for="name" class="form-label">name</label>
                             <input type="text" class="form-control" id="name" name="name" required>
@@ -73,6 +86,20 @@
 
     // email.addEventListener('keypress',keyHandler);//輸入時會抓輸入字，但刪除時不會觸發
     email.addEventListener('input',keyHandler);
+
+    const avatar = document.querySelector('#avatar');
+
+        avatar.addEventListener('change', async event=>{
+            const fd = new FormData(document.form2);
+            const res = await fetch('/try-upload2', {
+                method: 'POST',
+                body: fd
+            });
+            const obj = await res.json();
+            document.querySelector('#img01').src = '/img/' + obj.filename;
+            document.fake_form.my_img.value = obj.filename;
+        });
+
 
 
     function checkForm(){
