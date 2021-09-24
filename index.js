@@ -81,11 +81,7 @@ app.use(async (req,res,next)=>{
     next();
 })
 
-app.post('/try-upload2',uploadImg.single('avatar'),async (req,res)=>{
-    res.json(req.file);
-    //單一檔案上傳，圖片名稱暗碼
-        
-})
+
 
 // 上傳單一檔案single
 app.post('/try-upload',upload.single('avatar'),async (req,res)=>{

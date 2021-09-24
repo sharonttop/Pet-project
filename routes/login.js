@@ -67,7 +67,6 @@ router.post('/register', async (req, res)=>{
     let result;//在外面使用時，一定要加
     try {
         [result] = await db.query(sql, [
-            req.body.filename,
             req.body.email.toLowerCase().trim(),//Email不區分大小寫。//9/15 01:11:00
             hash,// 注意hash加密
             req.body.mobile,

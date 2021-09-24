@@ -88,12 +88,11 @@
     email.addEventListener('input',keyHandler);
 
     const avatar = document.querySelector('#avatar');
-
         avatar.addEventListener('change', async event=>{
-            const fd = new FormData(document.form2);
+            const fd2 = new FormData(document.avatar);
             const res = await fetch('/try-upload2', {
                 method: 'POST',
-                body: fd
+                body: fd2
             });
             const obj = await res.json();
             document.querySelector('#img01').src = '/img/' + obj.filename;
