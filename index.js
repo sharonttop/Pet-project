@@ -10,16 +10,30 @@ const uploadImg = require('./modules/upload-images')
 
 app.set('view engine','ejs');
 
+const Joi = require('joi');
+// const joiCross = require('./modules/joi');
+
 const session = require('express-session')
 const jwt = require('jsonwebtoken');
 const MysqlStore = require('express-mysql-session')(session);//用來記錄用戶的session到資料表
 
 const fs = require('fs').promises;
+const cors = require('cors');
 
 const moment = require("moment-timezone")
 
 const db = require('./modules/connect-mysql');
 const sessionStore= new MysqlStore({},db);
+
+const corsOptions = {
+    credentials: true,
+    origin: (origin, cb)=>{
+       console.log(`origin: ${origin}`);
+       cb(null, true);
+    }
+};
+app.use( cors(corsOptions) );
+// app.use(cors());//如果放到後面，必須放在靜態資料夾之前，同樣是use還是會有優先順序的問題。Access-Control-Allow-Origin: *會全開。
 
 app.use(session({
     name:'mySessionID',//可以修改Application的cookie原本的name(原為connect.sid)，也可以不用改
@@ -81,7 +95,11 @@ app.use(async (req,res,next)=>{
     next();
 })
 
-
+app.post('/try-upload2',uploadImg.single('avatar'),async (req,res)=>{
+    res.json(req.file);
+    //單一檔案上傳，圖片名稱暗碼
+        
+})
 
 // 上傳單一檔案single
 app.post('/try-upload',upload.single('avatar'),async (req,res)=>{
@@ -101,6 +119,51 @@ app.post('/try-upload',upload.single('avatar'),async (req,res)=>{
 
 
 })
+
+//抓取會員資料會用到自訂的屬性 myAuth(上面要注意複製)
+app.get('/auth-token', async (req, res)=>{
+    // res.json(req.body);
+    const output = {
+        success: false,
+        postData: req.body,
+        error: ''
+    };
+
+    if(req.myAuth && req.myAuth.id){
+        output.member = req.myAuth;
+        output.success = true;
+
+    } else {
+        output.error = '沒有 token 或者 token 不合法';
+    }
+
+    //SELECT `id`, `avatar`, `name`, `nickname`, `email`, `password`, `mobile`, `birthday`, `address`, `hash`, `activated`, `create_at`, `coupon_signup`(註冊預設空值，設定為datetime), `coupon_petid`(註冊呈現空值，登入寵物id時給一個日期), FROM `members` WHERE 1
+    const sql = "SELECT * FROM `members` WHERE id=?";
+    const [r] = await db.query(sql, [req.myAuth.id]);
+    res.json(r[0] ? r[0] : {});
+});
+
+//編輯會員資料
+app.put('/auth-token', async (req, res)=>{
+    // res.json(req.body);
+    const output = {
+        success: false,
+        postData: req.body,
+        error: ''
+    };
+
+    if(req.myAuth && req.myAuth.id){
+        output.member = req.myAuth;
+        output.success = true;
+
+    } else {
+        output.error = '沒有 token 或者 token 不合法';
+    }
+
+    const sql = "UPDATE `members` SET ? WHERE id=?";
+    const [r] = await db.query(sql, [req.body, req.myAuth.id]);
+    res.json(r);
+});
 
 
 
