@@ -94,6 +94,25 @@ app.use(async (req,res,next)=>{
 
     next();
 })
+// *** 路由定義開始 :BEGIN--------------------------------------------------------------
+
+app.get('/', (req, res)=>{
+    res.locals.title ="首頁-"+ res.locals.title;
+    // res.send(`<h2>Hello</h2>`);
+    res.render('home',{name: 'Sharon'})
+});
+
+//路由模組化-middleware，拆開來到別的檔案方便管理
+app.use('/', require('./routes/login'));
+app.use('/customers', require('./routes/customers'));
+
+app.get('/try-sess', (req, res)=>{
+    //myVar自己設定自己取
+    req.session.myVar = req.session.myVar || 0;
+    req.session.myVar++;
+
+    res.json(req.session);
+});
 
 app.post('/try-upload2',uploadImg.single('avatar'),async (req,res)=>{
     res.json(req.file);
@@ -167,25 +186,7 @@ app.put('/auth-token', async (req, res)=>{
 
 
 
-// *** 路由定義開始 :BEGIN--------------------------------------------------------------
 
-app.get('/', (req, res)=>{
-    res.locals.title ="首頁-"+ res.locals.title;
-    // res.send(`<h2>Hello</h2>`);
-    res.render('home',{name: 'Sharon'})
-});
-
-//路由模組化-middleware，拆開來到別的檔案方便管理
-app.use('/', require('./routes/login'));
-app.use('/customers', require('./routes/customers'));
-
-app.get('/try-sess', (req, res)=>{
-    //myVar自己設定自己取
-    req.session.myVar = req.session.myVar || 0;
-    req.session.myVar++;
-
-    res.json(req.session);
-});
 
 // *** 路由定義結束 :END-----------------------------------
 
