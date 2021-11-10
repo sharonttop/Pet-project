@@ -184,6 +184,43 @@ app.put('/auth-token', async (req, res)=>{
     res.json(r);
 });
 
+//寵物ID建立成功匯入資料庫建立時間
+app.put('/petid-coupon', async (req, res)=>{
+    // res.json(req.body);
+    const output = {
+        success: false,
+        postData: req.body,
+        error: ''
+    };
+
+    const sql = "UPDATE members SET `coupon_petid`=? WHERE id=?";
+    
+
+    let result;//在外面使用時，一定要加
+    
+    //建立時間點，於此時間2021-11-04 19:09:47之後購物車可以抓到優惠券
+        [result] = await db.query(sql,['2021-11-04 19:09:47',req.myAuth.id],function(err, rows){
+            //r[0].id從上面req.myAuth.id取值
+            //用於除錯
+            if (err) {
+             console.log(err,'err');
+           }else{
+             console.log(rows,'rows')
+           }
+         });
+
+         
+        console.log([result]);
+
+        if(result.affectedRows===1){
+            output.success = true;
+        } else {
+            output.error = '寵物ID登入失敗';
+        }
+
+    res.json(output);
+});
+
 
 
 
