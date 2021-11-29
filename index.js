@@ -147,19 +147,20 @@ app.get('/auth-token', async (req, res)=>{
         postData: req.body,
         error: ''
     };
-
+    let r;
     if(req.myAuth && req.myAuth.id){
         output.member = req.myAuth;
         output.success = true;
+        const sql = "SELECT * FROM `members` WHERE id=?";
+        [r] = await db.query(sql, [req.myAuth.id]);
 
     } else {
         output.error = '沒有 token 或者 token 不合法';
     }
 
     //SELECT `id`, `avatar`, `name`, `nickname`, `email`, `password`, `mobile`, `birthday`, `address`, `hash`, `activated`, `create_at`, `coupon_signup`(註冊預設空值，設定為datetime), `coupon_petid`(註冊呈現空值，登入寵物id時給一個日期), FROM `members` WHERE 1
-    const sql = "SELECT * FROM `members` WHERE id=?";
-    const [r] = await db.query(sql, [req.myAuth.id]);
-    res.json(r[0] ? r[0] : {});
+   
+    res.json(r ? r[0] : {});
 });
 
 //編輯會員資料
