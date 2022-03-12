@@ -6,10 +6,20 @@ const app = express();
 const multer = require("multer"); //檔案上傳功能，但不是很常用
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "tmp_uploads/");
+    cb(null, "public/tmp_uploads/");
   },
   filename: function (req, file, cb) {
-    cb(null, file.originalname + "-" + Date.now() + ".jpg");
+    cb(
+      null,
+      file.originalname.split(".")[0] +
+        "-" +
+        Date.now() +
+        "." +
+        file.mimetype.slice(
+          file.mimetype.indexOf("/") + 1,
+          file.mimetype.length
+        )
+    );
   },
 });
 const upload = multer({ storage: storage });
@@ -209,55 +219,128 @@ app.put("/petid-coupon", async (req, res) => {
   res.json(output);
 });
 
-// 寵物id
-app.put("/try-uploads", upload.array("photos[]"), async (req, res) => {
+app.get("/try-uploads", async (req, res) => {
   try {
-    const { petName, breed, petBirthday, user_id, photos } = req.body;
-    console.log("req.body.user_id", req.body.user_id);
-    console.log("petName", petName);
-    console.log("breed", breed);
-    console.log("petBirthday", petBirthday);
-    console.log("user_id", user_id);
-    console.log("photos", photos);
+    //SELECT * FROM `members_pet_id` WHERE `user_id`=134;
+    const sql = "SELECT * FROM `members_pet_id` WHERE `user_id`=?";
+    [r] = await db.query(sql, [req.myAuth.id], function (err, rows) {
+      //用於除錯
+      if (err) {
+        console.log(err, "err");
+      } else {
+        console.log(rows, "rows");
+      }
+    });
 
+    // console.log("[r]", [r]);
+    res.json(r);
+  } catch (e) {
+    Error(e);
+  }
+});
+
+// 寵物id
+app.post("/try-uploads", upload.array("pet_avatar[]"), async (req, res) => {
+  // id: 1;
+  // petImgSrc: "blob:http://localhost:3000/a841a307-5bbb-4954-b2e4-91c90548c9ff";
+  // pet_avatar: "";
+  // pet_birthday: "2022-03-18";
+  // pet_breed: "狗";
+  // pet_name: "asd";
+  try {
+    const {
+      pet_name,
+      pet_breed,
+      pet_birthday,
+      user_id,
+      pet_avatar,
+      pet_id,
+      isFileUpload,
+      delArray,
+    } = req.body;
+
+    // 所有上傳的圖檔檔名
     const petImgNames = [];
-    // const petNameAll = [];
-    // const breedAll = [];
-    // const petBirthdayAll = [];
-
     const result = await req.files.map(({ mimetype, filename, size }) => {
       petImgNames.push(filename);
-
       return { mimetype, filename, size };
     });
 
-    // console.log("user_id", user_id);
-    // console.log("petNameAll", petNameAll);
-    // console.log("breedAll", breedAll);
-    // console.log("petBirthdayAll", petBirthdayAll);
-    // console.log("petImgNames", petImgNames);
+    // 所有圖檔新增的資訊：整理每一筆資料是否有圖片，有圖就按新增順序給fileIndex，這數字代表node收到的檔案順序，到時再用這個數字可以拿到正確的圖檔。
+    let fileIndex = 0; //第一張傳入的圖為req.files[0]
+    const fileIndexArray = isFileUpload.map((v, i) => {
+      const result = !!v ? fileIndex++ : "nopic";
+      //!!v 轉成布林值，判斷是否為新增的圖檔，舊的圖就為nopic
+      return result;
+    });
 
-    // // user_id	pet_id	pet_avatar	pet_name	pet_breed	pet_birthday
-
-    const sql =
+    // SQL 新增資料語法
+    const sqlInsertData =
       "INSERT INTO `members_pet_id`" +
       "(`user_id`, `pet_avatar`, `pet_name`, `pet_breed`, `pet_birthday`,`create_at`)" +
       "VALUES (?, ?, ?, ?, ?, NOW())";
+
+    // SQL 修改資料(無更新圖片)語法
+    const sqlUpdateNoPic =
+      "UPDATE `members_pet_id` SET `pet_name`=?,`pet_breed`=?,`pet_birthday`=? WHERE `pet_id`= ?";
+
+    // SQL 修改資料(有更新圖片)語法
+    const sqlUpdate =
+      "UPDATE `members_pet_id` SET  `pet_avatar`=?, `pet_name`=?,`pet_breed`=?,`pet_birthday`=? WHERE `pet_id`= ?";
+
     let i;
     let petIdRow;
     let inserPetId;
-    console.log("petName.length", petName.length);
-    for (i = 0; i < petName.length; i++) {
-      console.log("i", i);
-      petIdRow = [
-        user_id,
-        petImgNames[i],
-        petName[i],
-        breed[i],
-        petBirthday[i],
-      ];
-      // 放進mySQL
-      [inserPetId] = await db.query(sql, petIdRow);
+    let UpdatePetId;
+
+    console.log("pet_birthday", pet_birthday);
+    // 針對所有資料跑迴圈，決定是否要修改或新增
+    for (i = 0; i < pet_id.length; i++) {
+      // 如果有 pet_id 代表要修改資料庫內的寵物。
+      if (pet_id[i]) {
+        // 如果使用者沒上傳圖片，使用 sqlUpdateNoPic 語法更新。
+        if (fileIndexArray[i] === "nopic") {
+          petIdRow = [pet_name[i], pet_breed[i], pet_birthday[i], pet_id[i]];
+          [UpdatePetId] = await db.query(sqlUpdateNoPic, petIdRow);
+        } else {
+          // 如果使用者有上傳圖片，使用 sqlUpdate 語法更新。
+          petIdRow = [
+            petImgNames[fileIndexArray[i]],
+            pet_name[i],
+            pet_breed[i],
+            pet_birthday[i],
+            pet_id[i],
+          ];
+          [UpdatePetId] = await db.query(sqlUpdate, petIdRow);
+        }
+      } else {
+        // 資料內沒有 pet_id 代表要新增一筆寵物資料。
+        // INSERT PET
+        petIdRow = [
+          user_id,
+          fileIndexArray[i] === "nopic"
+            ? "noPic"
+            : petImgNames[fileIndexArray[i]],
+          pet_name[i],
+          pet_breed[i],
+          pet_birthday[i],
+        ];
+        // 放進mySQL
+        [inserPetId] = await db.query(sqlInsertData, petIdRow);
+      }
+    }
+
+    // DELETE PET 刪除寵物資訊
+    let delArrayAll = JSON.parse(delArray);
+    let deletePetId;
+    for (let i = 0; i < delArrayAll.length; i++) {
+      if (delArrayAll[i].pet_id) {
+        console.log("pet_id", delArrayAll[i].pet_id);
+        // DELETE FROM `members_pet_id` WHERE `pet_id`= 80;
+        let sql = " DELETE FROM `members_pet_id` WHERE `pet_id`=?";
+
+        [deletePetId] = await db.query(sql, delArrayAll[i].pet_id);
+      }
     }
 
     res.json(result);
@@ -265,7 +348,6 @@ app.put("/try-uploads", upload.array("photos[]"), async (req, res) => {
     Error(e);
   }
 });
-
 // *** 路由定義結束 :END-----------------------------------
 
 app.use((req, res) => {
