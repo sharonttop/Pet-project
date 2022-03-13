@@ -23,19 +23,14 @@ var storage = multer.diskStorage({
   },
 });
 const upload = multer({ storage: storage });
-// const upload = multer({dest:'tmp_uploads/'})
 const uploadImg = require("./modules/upload-images");
 
 app.set("view engine", "ejs");
-
-const Joi = require("joi");
-// const joiCross = require('./modules/joi');
 
 const session = require("express-session");
 const jwt = require("jsonwebtoken");
 const MysqlStore = require("express-mysql-session")(session); //用來記錄用戶的session到資料表
 
-const fs = require("fs").promises;
 const cors = require("cors");
 
 const moment = require("moment-timezone");
@@ -121,8 +116,6 @@ app.get("/", (req, res) => {
 
 //路由模組化-middleware，拆開來到別的檔案方便管理
 app.use("/", require("./routes/login"));
-app.use("/customers", require("./routes/customers"));
-
 app.get("/try-sess", (req, res) => {
   //myVar自己設定自己取
   req.session.myVar = req.session.myVar || 0;
@@ -180,7 +173,7 @@ app.put("/auth-token", async (req, res) => {
   res.json(r);
 });
 
-//寵物ID建立成功匯入資料庫建立時間
+//寵物id折價券儲存進資料表coupon_petid欄位
 app.put("/petid-coupon", async (req, res) => {
   // res.json(req.body);
   const output = {
@@ -191,7 +184,7 @@ app.put("/petid-coupon", async (req, res) => {
 
   const sql = "UPDATE members SET `coupon_petid`=? WHERE id=?";
 
-  let result; //在外面使用時，一定要加
+  let result;
 
   //建立時間點，於此時間2021-11-04 19:09:47之後購物車可以抓到優惠券
   [result] = await db.query(
@@ -219,6 +212,7 @@ app.put("/petid-coupon", async (req, res) => {
   res.json(output);
 });
 
+// 已建立寵物id，進入頁面get資料
 app.get("/try-uploads", async (req, res) => {
   try {
     //SELECT * FROM `members_pet_id` WHERE `user_id`=134;
@@ -231,29 +225,20 @@ app.get("/try-uploads", async (req, res) => {
         console.log(rows, "rows");
       }
     });
-
-    // console.log("[r]", [r]);
     res.json(r);
   } catch (e) {
     Error(e);
   }
 });
 
-// 寵物id
+// 建立、更新、刪除寵物id
 app.post("/try-uploads", upload.array("pet_avatar[]"), async (req, res) => {
-  // id: 1;
-  // petImgSrc: "blob:http://localhost:3000/a841a307-5bbb-4954-b2e4-91c90548c9ff";
-  // pet_avatar: "";
-  // pet_birthday: "2022-03-18";
-  // pet_breed: "狗";
-  // pet_name: "asd";
   try {
     const {
       pet_name,
       pet_breed,
       pet_birthday,
       user_id,
-      pet_avatar,
       pet_id,
       isFileUpload,
       delArray,
@@ -293,7 +278,7 @@ app.post("/try-uploads", upload.array("pet_avatar[]"), async (req, res) => {
     let inserPetId;
     let UpdatePetId;
 
-    console.log("pet_birthday", pet_birthday);
+    // console.log("pet_birthday", pet_birthday);
     // 針對所有資料跑迴圈，決定是否要修改或新增
     for (i = 0; i < pet_id.length; i++) {
       // 如果有 pet_id 代表要修改資料庫內的寵物。
@@ -325,14 +310,13 @@ app.post("/try-uploads", upload.array("pet_avatar[]"), async (req, res) => {
           pet_breed[i],
           pet_birthday[i],
         ];
-        // 放進mySQL
+        // 存進mySQL
         [inserPetId] = await db.query(sqlInsertData, petIdRow);
       }
     }
 
     // DELETE PET 刪除寵物資訊
     let delArrayAll = JSON.parse(delArray);
-    let deletePetId;
     for (let i = 0; i < delArrayAll.length; i++) {
       if (delArrayAll[i].pet_id) {
         console.log("pet_id", delArrayAll[i].pet_id);
